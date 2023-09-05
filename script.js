@@ -56,6 +56,10 @@ function clickPickHandler() {
     pickComCard();
     // 画面を更新する
     updateView();
+    // 自分の合計が21を超えた場合、勝敗判定に移る
+    if (getTotal(myCards) > 21) {
+      clickJudgeHandler();
+    }
   }
 }
 
@@ -64,10 +68,12 @@ function clickJudgeHandler() {
   let result = "";
   // 勝敗が未決定の場合
   if (isGameOver == false) {
+    // 画面を更新する（相手のカードを表示する）
+    updateView(true);
     // 勝敗を判定する
     result = judge();
-    // 勝敗を画面に表示する
-    showResult(result);
+    // 1秒後に勝敗を画面に表示する
+    setTimeout(showResult, 1000, result);
     // 勝敗決定フラグを「決定」に変更
     isGameOver = true;
   }
@@ -115,14 +121,12 @@ function pickMyCard() {
 // 相手がカードを引く関数
 function pickComCard() {
   // 相手のカードの枚数が4枚以下の場合
-  if ( comCards.length <= 4 ) {
-    // カードを引くかどうか考える
-    if ( pickAI(comCards) ) {
-      // カードの山（配列）から1枚取り出す
-      let card = cards.pop();
-      // 取り出した1枚を相手のカード（配列）に追加する
-      comCards.push(card);
-    }
+  // カードを引くかどうか考える
+  while ( pickAI(comCards) && comCards.length <= 4 ) {
+    // カードの山（配列）から1枚取り出す
+    let card = cards.pop();
+    // 取り出した1枚を相手のカード（配列）に追加する
+    comCards.push(card);
   }
 }
 
@@ -134,24 +138,12 @@ function pickAI(handCards) {
   // カードを引くかどうか
   let isPick = false;
 
-  // 合計が11以下なら「引く」
-  if (total <= 11) {
+  // 合計が16以下なら「引く」
+  if (total <= 16) {
     isPick = true;
   }
-  // 合計が12～14なら80%の確率で「引く」
-  else if (total >=12 && total <= 14) {
-    if (Math.random() < 0.8) {
-      isPick = true;
-    }
-  }
-  // 合計が15～17なら35%の確率で「引く」
-  else if (total >=15 && total <= 17) {
-    if (Math.random() < 0.35) {
-      isPick = true;
-    }
-  }
-  // 合計が18以上なら「引かない」
-  else if (total >=18) {
+  // 合計が17以上なら「引かない」
+  else {
     isPick = false;
   }
   // 引くか引かないかを戻り値で返す
@@ -184,7 +176,7 @@ function getTotal(handCards) {
 }
 
 // 画面の表示を更新する関数
-function updateView() {
+function updateView(showComCards = false) {
   // 自分のカードを表示する
   let myFields = document.querySelectorAll(".myCard");
   for (let i = 0; i < myFields.length; i++) {
@@ -200,8 +192,8 @@ function updateView() {
   // 相手のカードを表示する
   let comFields = document.querySelectorAll(".comCard");
   for (let i = 0; i < comFields.length; i++) {
-    // 相手のカードの枚数がiより大きい場合
-    if (i < comCards.length) {
+    // 相手のカードの枚数がiより大きい場合（1枚目は常に表を表示）
+    if (i == 0 || (i < comCards.length && showComCards == true)) {
       // 表面の画像を表示する
       comFields[i].setAttribute('src', getCardPath(comCards[i]));
     } else {
@@ -211,7 +203,9 @@ function updateView() {
   }
   // カードの合計を再計算する
   document.querySelector("#myTotal").innerText = getTotal(myCards);
-  document.querySelector("#comTotal").innerText = getTotal(comCards);
+  if (showComCards == true) {
+    document.querySelector("#comTotal").innerText = getTotal(comCards);
+  }
 }
 
 // カードの画像パスを求める関数
@@ -246,8 +240,8 @@ function judge() {
     result = "win";
   }
   else if (myTotal > 21 && comTotal > 21) {
-    // 自分も相手も21を超えていれば引き分け
-    result = "draw";
+    // 自分も相手も21を超えていれば負け
+    result = "loose";
   }
   else {
     // 自分も相手も21を超えていない場合
@@ -258,8 +252,8 @@ function judge() {
       // 自分の合計が相手の合計より小さければ負け
       result = "loose";
     } else {
-      // 自分の合計が相手の合計と同じなら引き分け
-      result = "draw";
+      // 自分の合計が相手の合計と同じなら負け
+      result = "loose";
     }
   }
   // 勝敗を呼び出し元に返す
@@ -297,132 +291,3 @@ function debug() {
   console.log("相手のカード", comCards, "合計" + getTotal(comCards));
   console.log("勝敗決定フラグ", isGameOver);
 }
-
-// コメントコーディング
-
-/***********************************************
-  グローバル変数
-************************************************/
-
-// カードの山（配列）
-// 自分のカード（配列）
-// 相手のカード（配列）
-// 勝敗決定フラグ（論理型）
-
-/***********************************************
-  イベントハンドラの割り当て
-************************************************/
-
-// ページの読み込みが完了したとき実行する関数を登録
-// window.addEventListener("load", 初期表示);
-
-// 「カードを引く」ボタンを押したとき実行する関数を登録
-// document.querySelector("#pick").addEventListener("click", カードを引く);
-
-// 「勝負する！」ボタンを押したとき実行する関数を登録
-// document.querySelector("#judge").addEventListener("click", 勝負する);
-
-// 「もう1回遊ぶ」ボタンを押したとき実行する関数を登録
-// document.querySelector("#reset").addEventListener("click", もう1回遊ぶ);
-
-/***********************************************
-  イベントハンドラ
-************************************************/
-
-// ページの読み込みが完了したとき実行する関数
-// function 初期表示() {
-  // シャッフル
-  // 自分がカードを引く
-  // 相手がカードを引く
-  // 画面を更新する
-// }
-
-// 「カードを引く」ボタンを押したとき実行する関数
-// function カードを引く() {
-  // if (勝敗が未決定) {
-    // 自分がカードを引く
-    // 相手がカードを引く
-    // 画面を更新する
-  // }
-// }
-
-// 「勝負する！」ボタンを押したとき実行する関数
-// function 勝負する() {
-  // if (勝敗が未決定) {
-    // 勝敗を判定する
-    // 勝敗を画面に表示する
-    // 勝敗決定フラグを「決定」に変更
-  // }
-// }
-
-// 「もう1回遊ぶ」ボタンを押したとき実行する関数
-// function もう1回遊ぶ() {
-  // 画面を初期表示に戻す
-  // reloadメソッドでページを再読み込みする
-// }
-/***********************************************
-  ゲーム関数
-************************************************/
-
-// カードの山をシャッフルする関数
-// function シャッフル() {
-  // for (100回繰り返す) {
-    // カードの山からランダムに選んだ2枚を入れ替える
-  // }
-// }
-
-// 自分がカードを引く関数
-// function 自分がカードを引く() {
-  // if (自分のカードの枚数が4枚以下) {
-    // カードの山（配列）から1枚取り出す
-    // 取り出した1枚を自分のカード（配列）に追加する
-  // }
-// }
-
-// 相手がカードを引く関数
-// function 相手がカードを引く() {
-  // if (相手のカードの枚数が4枚以下) {
-    // if (考える) {
-      // カードの山（配列）から1枚取り出す
-      // 取り出した1枚を相手のカード（配列）に追加する
-    // }
-  // }
-// }
-
-// カードを引くかどうか考える関数
-// function 考える() {
-  // 引くか引かないかを戻り値で返す
-// }
-
-// 画面の表示を更新する関数
-// function 画面を更新する() {
-  // 自分のカードを表示する
-  // for (iを5回繰り返す) {
-    // if (自分のカードの枚数がiより大きい) {
-      // 表面の画像を表示する
-    // } else {
-      // 裏面の画像を表示する
-    // }
-  // }
-  // 相手のカードを表示する
-  // for (iを5回繰り返す) {
-    // if (相手のカードの枚数がiより大きい) {
-      // 表面の画像を表示する
-    // } else {
-      // 裏面の画像を表示する
-    // }
-  // }
-  // カードの合計を再計算する
-// }
-
-// 勝敗を判定する関数
-// function 勝敗を判定する() {
-  // 自分のカードの合計を求める
-  // 相手のカードの合計を求める
-  // 勝敗のパターン表に当てはめて勝敗を決める
-  // 勝敗を呼び出し元に返す
-// }
-
-/***********************************************
-  デバッグ関数
-************************************************/
